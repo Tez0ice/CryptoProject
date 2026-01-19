@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scytale Quest: Student Edition</title>
+    <style>
+        /* --- CYBER THEME VARIABLES --- */
+        :root {
+            --bg: #020617; 
+            --panel: #0f172a; 
+            --border: #1e293b;
+            --cyan: #06b6d4; 
+            --green: #22c55e; 
+            --red: #ef4444;
+            --gold: #fbbf24; 
+            --text: #e2e8f0; 
+            --text-muted: #94a3b8;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', 'Courier New', monospace;
+            background: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+        }
+
+        /* Scanline Effect */
+        .scanlines {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 999;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 2px, 3px 100%; opacity: 0.4;
+        }
+
+        /* --- LAYOUT --- */
+        .app-container {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            width: 100%;
+            height: 100%;
+            z-index: 1; /* Above background */
+        }
+
+        /* Main Content */
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            padding: 30px;
+            gap: 25px;
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--cyan); }
+
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        h1 { margin: 0; color: var(--cyan); font-family: 'Courier New', monospace; letter-spacing: 2px; text-shadow: 0 0 10px rgba(6, 182, 212, 0.3); }
+        .subtitle { color: var(--text-muted); font-size: 0.9rem; }
+
+        .score-box {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid var(--cyan);
+            color: var(--cyan);
+            padding: 8px 20px;
+            border-radius: 4px;
+            font-weight: bold;
+            box-shadow: 0 0 10px rgba(6, 182, 212, 0.2);
+        }
+
+        /* Nav Tabs */
+        .nav-tabs {
+            display: flex;
+            gap: 2px;
+            background: var(--panel);
+            padding: 5px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid transparent;
+            background: transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            transition: 0.3s;
+            text-transform: uppercase;
+        }
+
+        .tab-btn:hover { color: var(--cyan); background: rgba(6, 182, 212, 0.1); }
+        .tab-btn.active { 
+            border-color: var(--cyan); 
+            color: var(--cyan); 
+            background: rgba(6, 182, 212, 0.15); 
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.1) inset;
+        }
+
+        /* Modules */
+        .module { display: none; animation: fadeIn 0.4s ease; }
+        .module.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Cards */
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 25px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+        .card::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%;
+            background: var(--border); border-top-left-radius: 6px; border-bottom-left-radius: 6px;
+        }
+        .card:hover { border-color: #475569; }
+
+        h2 { margin-top: 0; color: var(--cyan); font-size: 1.2rem; text-transform: uppercase; letter-spacing: 1px; }
+        h3 { color: var(--text); font-size: 1rem; margin-bottom: 10px; }
+        p { color: var(--text-muted); line-height: 1.5; }
+
+        /* Inputs */
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 15px;
+            background: #020617;
+            border: 1px solid #334155;
+            color: var(--cyan);
+            font-family: 'Courier New', monospace;
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            transition: 0.3s;
+        }
+        input:focus { outline: none; border-color: var(--cyan); box-shadow: 0 0 15px rgba(6, 182, 212, 0.2); }
+
+        button.action-btn {
+            background: transparent;
+            color: var(--cyan);
+            border: 1px solid var(--cyan);
+            padding: 10px 20px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+            text-transform: uppercase;
+        }
+        button.action-btn:hover { background: var(--cyan); color: #000; box-shadow: 0 0 15px var(--cyan); }
+
+        /* Slider */
+        input[type="range"] { -webkit-appearance: none; width: 100%; height: 5px; background: #334155; outline: none; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; background: var(--cyan); cursor: pointer; border-radius: 50%; box-shadow: 0 0 10px var(--cyan); }
+
+        /* Module 1: Wheel */
+        .cipher-wheel-display {
+            display: flex; flex-direction: column; gap: 5px;
+            background: #020617; padding: 15px; border: 1px dashed #334155;
+            overflow-x: auto; font-family: 'Courier New', monospace; margin-top: 15px;
+        }
+        .wheel-row { display: flex; }
+        .wheel-cell {
+            min-width: 35px; height: 35px;
+            display: flex; align-items: center; justify-content: center;
+            border: 1px solid #1e293b; font-weight: bold; color: var(--text-muted);
+        }
+        .wheel-cell.active { background: rgba(6, 182, 212, 0.2); color: var(--cyan); border-color: var(--cyan); }
+
+        /* Module 2: DB */
+        .hash-output {
+            font-family: 'Courier New', monospace; font-size: 1.5rem; color: var(--gold);
+            background: rgba(0,0,0,0.3); padding: 15px; border: 1px dashed var(--gold);
+            text-align: center; margin-top: 10px;
+        }
+        .database-container {
+            margin-top: 15px; border: 1px solid var(--border); background: #020617;
+            height: 200px; overflow-y: auto; font-family: 'Courier New', monospace;
+        }
+        .db-header {
+            background: #1e293b; padding: 10px; color: var(--cyan); font-weight: bold;
+            display: flex; justify-content: space-between; border-bottom: 1px solid var(--border);
+        }
+        .db-row {
+            display: flex; justify-content: space-between; padding: 8px 10px;
+            border-bottom: 1px solid #1e293b; color: var(--text-muted); font-size: 0.9rem;
+        }
+        .db-row:hover { background: rgba(6, 182, 212, 0.05); color: var(--text); }
+        .db-hash { color: var(--gold); }
+
+        /* CTF */
+        .ctf-card { border-left: 4px solid var(--red); }
+        .ctf-card.solved { border-color: var(--green); opacity: 0.6; pointer-events: none; }
+        .ctf-card.solved::after {
+            content: "ACCESS GRANTED"; position: absolute; top: 10px; right: 10px;
+            color: var(--green); font-weight: bold; border: 1px solid var(--green); padding: 2px 8px;
+        }
+
+        /* Chat */
+        .ai-sidebar { background: #0b1120; border-left: 1px solid var(--border); display: flex; flex-direction: column; }
+        .ai-header { padding: 15px; background: #161e2e; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+        .ai-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--cyan); color: #000; display: flex; align-items: center; justify-content: center; font-weight: bold; box-shadow: 0 0 10px var(--cyan); }
+        
+        .chat-box { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .msg { padding: 10px; border-radius: 4px; font-size: 0.9rem; max-width: 90%; line-height: 1.4; }
+        .msg.ai { background: rgba(6, 182, 212, 0.1); border: 1px solid rgba(6, 182, 212, 0.3); color: var(--cyan); align-self: flex-start; }
+        .msg.user { background: #334155; color: white; align-self: flex-end; text-align: right; }
+
+        /* Utility */
+        .hidden { display: none; }
+        .confetti { position: fixed; width: 8px; height: 8px; background: var(--cyan); z-index: 1000; }
+    </style>
+</head>
+<body>
+
+    <div class="scanlines"></div>
+
+    <div class="app-container">
+        <main class="main-content">
+            <header>
+                <div>
+                    <h1>SCYTALE QUEST</h1>
+                    <div class="subtitle">v3.0 | EDUCATIONAL CRYPTO TERMINAL</div>
+                </div>
+                <div class="score-box">SCORE: <span id="scoreVal">0</span> / 100</div>
+            </header>
+
+            <nav class="nav-tabs">
+                <button class="tab-btn active" onclick="switchTab('mod1')">Module 1: Caesar</button>
+                <button class="tab-btn" onclick="switchTab('mod2')">Module 2: Hashing</button>
+                <button class="tab-btn" onclick="switchTab('mod3')">CTF Missions</button>
+            </nav>
+
+            <div id="mod1" class="module active">
+                <div class="card">
+                    <h2>// INITIALIZE: ROTATION CIPHER</h2>
+                    <p>The Caesar Cipher shifts letters. Use the slider below to set the <strong>Shift Key</strong>.</p>
+                    
+                    <div style="margin: 20px 0;">
+                        <label style="color:var(--cyan); font-weight:bold;">SHIFT KEY: <span id="shiftVal" style="font-size:1.2rem; color:var(--gold);">3</span></label>
+                        <input type="range" id="shiftSlider" min="0" max="25" value="3" oninput="handleSliderChange()">
+                    </div>
+
+                    <div class="cipher-wheel-display" id="wheelDisplay"></div>
+                </div>
+
+                <div class="card">
+                    <h2>// EXPERIMENT: TWO-WAY TRANSLATOR</h2>
+                    <p>Type in the TOP box to <strong>Encrypt</strong>. Type in the BOTTOM box to <strong>Decrypt</strong>.</p>
+                    
+                    <div style="display: grid; gap: 15px;">
+                        <div>
+                            <label style="color:var(--green); font-size:0.8rem; font-weight:bold;">PLAINTEXT INPUT (READABLE)</label>
+                            <input type="text" id="caesarPlain" placeholder="HELLO" onkeyup="updateFromPlain()" onfocus="setFocus('plain')">
+                        </div>
+                        
+                        <div style="text-align:center; color:var(--text-muted); font-size:1.2rem;">
+                            ⬇️ Encrypts | Decrypts ⬆️
+                        </div>
+
+                        <div>
+                            <label style="color:var(--red); font-size:0.8rem; font-weight:bold;">CIPHERTEXT OUTPUT (SCRAMBLED)</label>
+                            <input type="text" id="caesarCipher" placeholder="KHOOR" onkeyup="updateFromCipher()" onfocus="setFocus('cipher')">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>// DRILL: DECRYPTION PRACTICE</h2>
+                    <p>Decrypt this intercepted message: <strong style="color:var(--red); letter-spacing:2px;">KHOOR ZRUOG</strong></p>
+                    <p style="font-size:0.8rem;">(Hint: The key is 3)</p>
+                    <input type="text" id="drillInput" placeholder="Type decrypted message..." onkeyup="checkDrill()">
+                    <div id="drillFeedback" style="height:20px; font-weight:bold;"></div>
+                </div>
+            </div>
+
+            <div id="mod2" class="module">
+                <div class="card">
+                    <h2>// ANALYZE: HASH GENERATOR</h2>
+                    <p>A Hash is a one-way digital fingerprint. Type anything to generate its unique ID.</p>
+                    <input type="text" id="hashInput" placeholder="Enter data..." onkeyup="generateHash()">
+                    
+                    <div style="margin-top:10px;">
+                        <span style="color:var(--text-muted);">GENERATED FINGERPRINT:</span>
+                        <div id="hashResult" class="hash-output">0000</div>
+                    </div>
+                </div>
+
+                <div class="card" style="border-left: 4px solid var(--gold);">
+                    <h2>// DATABASE: RAINBOW TABLE</h2>
+                    <p>We cannot mathematically reverse a hash. However, if we store every hash we calculate, we can look them up later.</p>
+                    <p style="font-size:0.8rem; color:var(--text-muted);">* This table updates automatically as you type above.</p>
+                    
+                    <div class="database-container">
+                        <div class="db-header">
+                            <span>HASH (HEX)</span>
+                            <span>ORIGINAL TEXT</span>
+                        </div>
+                        <div id="rainbowList">
+                            </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>// TOOL: REVERSE LOOKUP</h2>
+                    <p>Search the database above to find the original text for a given Hash.</p>
+                    <div style="display:flex; gap:10px;">
+                        <input type="text" id="lookupInput" placeholder="ex: 7F3A" maxlength="4" style="margin:0;">
+                        <button class="action-btn" onclick="lookupHash()">SEARCH</button>
+                    </div>
+                    <div id="lookupResult" style="margin-top:15px; font-weight:bold;"></div>
+                </div>
+            </div>
+
+            <div id="mod3" class="module">
+                <div class="card">
+                    <h2>// MISSION STATUS</h2>
+                    <p>Complete these objectives to certify as a Cryptography Agent.</p>
+                </div>
+
+                <div class="card ctf-card" id="chall1">
+                    <h3>OBJ 1: DECRYPT COMMMUNICATION</h3>
+                    <div style="background:#000; border:1px solid #333; padding:10px; font-family:'Courier New'; color:var(--green); margin-bottom:15px;">
+                        INTERCEPTED: <strong>FUBSWR_PDVWHU_2024</strong><br>
+                        INTEL: Standard Rotation. First word starts with 'C'.
+                    </div>
+                    <input type="text" id="flag1" placeholder="Enter Flag...">
+                    <div style="margin-top:10px; display:flex; justify-content:space-between;">
+                        <button class="action-btn" onclick="submitFlag(1)">SUBMIT</button>
+                        <button class="action-btn" style="border-color:#334155; color:#64748b;" onclick="toggleHint(1)">REQUEST HINT</button>
+                    </div>
+                    <p id="hint1" class="hidden" style="margin-top:10px; color:var(--cyan);">
+                        > HINT: Use Module 1. Try different shift values until 'F' becomes 'C'.
+                    </p>
+                </div>
+
+                <div class="card ctf-card" id="chall2">
+                    <h3>OBJ 2: DATABASE LEAK</h3>
+                    <div style="background:#000; border:1px solid #333; padding:10px; font-family:'Courier New'; color:var(--green); margin-bottom:15px;">
+                        TARGET HASH: <strong>7F3A</strong><br>
+                        INTEL: This hash was found in our Rainbow Table database.
+                    </div>
+                    <input type="text" id="flag2" placeholder="Enter Flag...">
+                    <div style="margin-top:10px; display:flex; justify-content:space-between;">
+                        <button class="action-btn" onclick="submitFlag(2)">SUBMIT</button>
+                        <button class="action-btn" style="border-color:#334155; color:#64748b;" onclick="toggleHint(2)">REQUEST HINT</button>
+                    </div>
+                    <p id="hint2" class="hidden" style="margin-top:10px; color:var(--cyan);">
+                        > HINT: Maybe we could use the Lookup Tool in Module 2 to find this flag?
+                    </p>
+                </div>
+            </div>
+
+        </main>
+
+        <aside class="ai-sidebar">
+            <div class="ai-header">
+                <div class="ai-avatar">AI</div>
+                <div style="font-size:0.9rem;">
+                    <span style="color:var(--cyan); font-weight:bold;">CYBER_TUTOR</span><br>
+                    <span style="color:#22c55e; font-size:0.7rem;">● ONLINE</span>
+                </div>
+            </div>
+            <div id="chatBox" class="chat-box">
+                <div class="msg ai">System Initialized. Awaiting input.</div>
+            </div>
+            <div style="padding:15px; border-top:1px solid var(--border);">
+                <div style="display:flex; gap:5px;">
+                    <input type="text" id="chatInput" style="margin:0; padding:10px;" placeholder="cmd..." onkeypress="if(event.key==='Enter') sendChat()">
+                    <button class="action-btn" style="padding:0 15px;" onclick="sendChat()">></button>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+<script>
+    // --- STATE ---
+    let score = parseInt(localStorage.getItem('scytaleScore')) || 0;
+    const solved = JSON.parse(localStorage.getItem('scytaleSolved')) || { 1: false, 2: false };
+    const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    let activeInput = 'plain'; // Tracks if user is typing in 'plain' or 'cipher' for slider logic
+    
+    const rainbowDB = {
+        '2F1A': 'HELLO',
+        '3B4C': 'PASSWORD123',
+        '4E2D': 'ADMIN',
+        '5A1F': 'WELCOME',
+        '6C3B': 'CRYPTO',
+        '7F3A': 'FLAG_SECURE'
+    };
+
+    window.onload = function() {
+        document.getElementById('scoreVal').innerText = score;
+        updateFromPlain(); // Init default
+        renderDB();
+        
+        if(solved[1]) markSolved(1);
+        if(solved[2]) markSolved(2);
+    };
+
+    function switchTab(id) {
+        document.querySelectorAll('.module').forEach(m => m.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        
+        const btns = document.querySelectorAll('.tab-btn');
+        if(id === 'mod1') btns[0].classList.add('active');
+        if(id === 'mod2') btns[1].classList.add('active');
+        if(id === 'mod3') btns[2].classList.add('active');
+    }
+
+    // --- MODULE 1: CAESAR (FIXED DECRYPTION) ---
+    
+    function setFocus(type) {
+        activeInput = type;
+    }
+
+    function handleSliderChange() {
+        const shift = document.getElementById('shiftSlider').value;
+        document.getElementById('shiftVal').innerText = shift;
+        renderWheel(parseInt(shift));
+
+        // Smart Update: If user was decrypting (typing in Cipher), update Plain.
+        // If user was encrypting (typing in Plain), update Cipher.
+        if(activeInput === 'cipher') {
+            updateFromCipher();
+        } else {
+            updateFromPlain();
+        }
+    }
+
+    function renderWheel(shift) {
+        const display = document.getElementById('wheelDisplay');
+        let r1 = "", r2 = "";
+        
+        for(let i=0; i<26; i++) {
+            let char = alphabet[i];
+            let shiftChar = alphabet[(i + shift) % 26];
+            r1 += `<div class="wheel-cell">${char}</div>`;
+            r2 += `<div class="wheel-cell active">${shiftChar}</div>`;
+        }
+        display.innerHTML = `<div class="wheel-row"><div class="wheel-cell" style="border:none; width:60px;">IN:</div>${r1}</div>
+                             <div class="wheel-row"><div class="wheel-cell" style="border:none; width:60px;">OUT:</div>${r2}</div>`;
+    }
+
+    // ENCRYPT: Plaintext + Shift -> Ciphertext
+    function updateFromPlain() {
+        const shift = parseInt(document.getElementById('shiftSlider').value);
+        const plain = document.getElementById('caesarPlain').value.toUpperCase();
+        let cipher = "";
+        
+        for(let char of plain) {
+            const idx = alphabet.indexOf(char);
+            if (idx === -1) {
+                cipher += char;
+            } else {
+                cipher += alphabet[(idx + shift) % 26];
+            }
+        }
+        document.getElementById('caesarCipher').value = cipher;
+    }
+
+    // DECRYPT: Ciphertext - Shift -> Plaintext
+    function updateFromCipher() {
+        const shift = parseInt(document.getElementById('shiftSlider').value);
+        const cipher = document.getElementById('caesarCipher').value.toUpperCase();
+        let plain = "";
+
+        for(let char of cipher) {
+            const idx = alphabet.indexOf(char);
+            if(idx === -1) {
+                plain += char;
+            } else {
+                // FIXED MATH: Correctly handle negative modulo
+                // (Index - Shift) might be negative.
+                // Example: A (0) - 3 = -3.   (-3 % 26) is -3 in JS.
+                // Formula: ((x % n) + n) % n
+                
+                let rawIndex = (idx - shift) % 26;
+                let correctedIndex = (rawIndex + 26) % 26;
+                
+                plain += alphabet[correctedIndex];
+            }
+        }
+        document.getElementById('caesarPlain').value = plain;
+    }
+
+    function checkDrill() {
+        const val = document.getElementById('drillInput').value.toUpperCase();
+        const fb = document.getElementById('drillFeedback');
+        if(val.includes("HELLO") || val.includes("WORLD")) {
+            fb.innerHTML = "<span style='color:var(--green)'>✓ CORRECT: ENGLISH DETECTED</span>";
+        } else {
+            fb.innerHTML = "<span style='color:var(--red)'>...analyzing...</span>";
+        }
+    }
+
+    // --- MODULE 2: HASHING ---
+
+    function computeHash(text) {
+        if(!text) return "0000";
+        let sum = 0;
+        for(let i=0; i<text.length; i++) {
+            sum += text.charCodeAt(i) * (i+1);
+        }
+        return (sum % 10000).toString(16).toUpperCase().padStart(4, '0');
+    }
+
+    function generateHash() {
+        const text = document.getElementById('hashInput').value.toUpperCase().trim();
+        const hash = computeHash(text);
+        document.getElementById('hashResult').innerText = hash;
+
+        if(text.length > 0) {
+            // Add to local DB (Memory only)
+            rainbowDB[hash] = text;
+            renderDB();
+        }
+    }
+
+    function renderDB() {
+        const list = document.getElementById('rainbowList');
+        let html = "";
+        
+        // Reverse order to show newest first
+        const keys = Object.keys(rainbowDB).reverse();
+        
+        for(let k of keys) {
+            // HIDE THE FLAG FROM VISUAL LIST!!
+            if(k === '7F3A') continue;
+
+            html += `<div class="db-row">
+                        <span class="db-hash">${k}</span>
+                        <span>${rainbowDB[k]}</span>
+                     </div>`;
+        }
+        list.innerHTML = html;
+    }
+
+    function lookupHash() {
+        const q = document.getElementById('lookupInput').value.toUpperCase().trim();
+        const res = document.getElementById('lookupResult');
+        
+        if(rainbowDB[q]) {
+            res.innerHTML = `<span style="color:var(--green)">>> MATCH FOUND: "${rainbowDB[q]}"</span>`;
+        } else {
+            res.innerHTML = `<span style="color:var(--red)">>> NO MATCH IN DATABASE</span>`;
+        }
+    }
+
+    // --- CTF LOGIC ---
+
+    function toggleHint(id) {
+        document.getElementById(`hint${id}`).classList.toggle('hidden');
+    }
+
+    function submitFlag(id) {
+        if(solved[id]) return;
+
+        const val = document.getElementById(`flag${id}`).value.trim();
+        let correct = (id === 1) ? "CRYPTO_MASTER_2024" : "FLAG_SECURE";
+        
+        if(val === correct) {
+            score += 50;
+            solved[id] = true;
+            localStorage.setItem('scytaleScore', score);
+            localStorage.setItem('scytaleSolved', JSON.stringify(solved));
+            document.getElementById('scoreVal').innerText = score;
+            markSolved(id);
+            alert(">> ACCESS GRANTED. FLAG CAPTURED.");
+            fireConfetti();
+        } else {
+            alert(">> ACCESS DENIED. INCORRECT FLAG.");
+        }
+    }
+
+    function markSolved(id) {
+        document.getElementById(`chall${id}`).classList.add('solved');
+        document.getElementById(`flag${id}`).value = "CAPTURED";
+    }
+
+    function fireConfetti() {
+        const colors = ['#06b6d4', '#22c55e', '#fbbf24'];
+        for(let i=0; i<60; i++) {
+            const c = document.createElement('div');
+            c.className = 'confetti';
+            c.style.left = Math.random() * 100 + 'vw';
+            c.style.top = '-10px';
+            c.style.background = colors[Math.floor(Math.random()*3)];
+            c.style.transform = `rotate(${Math.random()*360}deg)`;
+            
+            // Random animation
+            const duration = Math.random() * 2 + 2;
+            c.style.transition = `top ${duration}s ease-in, transform ${duration}s linear`;
+            
+            document.body.appendChild(c);
+            
+            // Trigger animation
+            setTimeout(() => {
+                c.style.top = '110vh';
+                c.style.transform = `rotate(${Math.random()*720}deg)`;
+            }, 100);
+
+            setTimeout(() => c.remove(), duration * 1000);
+        }
+    }
+
+    // --- AI LOGIC ---
+    async function sendChat() {
+        const inp = document.getElementById('chatInput');
+        const txt = inp.value.trim();
+        if(!txt) return;
+
+        // UI Update
+        const box = document.getElementById('chatBox');
+        box.innerHTML += `<div class="msg user">${txt}</div>`;
+        inp.value = "";
+        
+        const loadId = "load"+Date.now();
+        box.innerHTML += `<div id="${loadId}" class="msg ai">...processing...</div>`;
+        box.scrollTop = box.scrollHeight;
+
+        try {
+            // Local backend attempt
+            const res = await fetch('http://localhost:3000/chat', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({message: txt})
+            });
+            const data = await res.json();
+            document.getElementById(loadId).innerText = data.reply;
+        } catch(e) {
+            // Offline fallback
+            let reply = "Server connection offline. Restricted Mode active.";
+            const t = txt.toLowerCase();
+            if(t.includes("hello")) reply = "Greetings, Agent. Ready to decrypt?";
+            if(t.includes("hint") || t.includes("flag")) reply = "Check the [REQUEST HINT] buttons on the mission cards.";
+            if(t.includes("caesar")) reply = "The Caesar Cipher is symmetric. Shift (+N) to encrypt, Shift (-N) to decrypt.";
+            if(t.includes("hash")) reply = "Hashes are one-way. Use the Rainbow Table to look up known hashes.";
+            
+            document.getElementById(loadId).innerText = reply;
+        }
+        box.scrollTop = box.scrollHeight;
+    }
+</script>
+</body>
+</html>
